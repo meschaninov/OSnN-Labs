@@ -10,5 +10,5 @@
 | 1   | Введение в виртуальные машины и установка Debian           | [Lab No. 1/README.md](Lab%20No.%201/README.md) |
 | 2   | Управление системой и пользователями                       | [Lab No. 2/README.md](Lab%20No.%202/README.md) |
 | 3   | Управление пакетами, системными сервисами и настройка сети | [Lab No. 3/README.md](Lab%20No.%203/README.md) |
-| 4   | Безопасность системы и файловые системы                    | [Lab No. 4/README.md](Lab%20No.%204/README.md) |
-| 5   | Комплексная работа: две ВМ, nginx, NFS, Samba, мониторинг  | [Lab No. 5/README.md](Lab%20No.%205/README.md) |
+| 4   | Безопасность системы и файловые системы                    | </Undefined> |
+| 5   | Комплексная работа: две ВМ, nginx, NFS, Samba, мониторинг  | </Undefined> |
