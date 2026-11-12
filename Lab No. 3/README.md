@@ -5,29 +5,17 @@
 
 ## Цель работы
 
-Научиться настраивать источники пакетов APT и устанавливать программы, управлять системными службами через systemd, планировать задачи с помощью cron, настраивать статический IP-адрес и диагностировать сеть стандартными утилитами.
+Настроить репозитории и установить пакеты, научиться управлять сервисами через `systemctl` и `cron`, настроить статический IP-адрес и изучить команды диагностики сети.
 
-## Используемые средства
-
-| Компонент            | Версия                                 |
-| -------------------- | -------------------------------------- |
-| Хост-система         | macOS, Apple M4                        |
-| Гипервизор           | Oracle VirtualBox 7.2, адаптер 1 — NAT |
-| Гостевая ОС          | Debian GNU/Linux 13 «Trixie», arm64    |
-| Сетевой интерфейс ВМ | `enp0s8`                               |
+Все команды выполнялись от имени root.
 
 ---
 
-## 1. Управление пакетами
+## Задание 1. Управление пакетами
 
-### 1.1. Настройка /etc/apt/sources.list
+### Настройка sources.list
 
-Кодовое имя версии — `trixie` (`cat /etc/os-release`). Сделана резервная копия, файл отредактирован:
-
-```bash
-sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
-sudo nano /etc/apt/sources.list
-```
+В файл `/etc/apt/sources.list` добавлены официальные репозитории Debian и зеркало Яндекса:
 
 ```
 # Официальные репозитории Debian
@@ -39,27 +27,27 @@ deb http://security.debian.org/debian-security trixie-security main contrib non-
 deb http://mirror.yandex.ru/debian trixie main contrib non-free non-free-firmware
 ```
 
-Структура строки: тип (`deb` — двоичные пакеты), адрес репозитория, выпуск (`trixie`, `trixie-updates`, `trixie-security`), разделы (`main` — свободное ПО, `contrib` — свободное с несвободными зависимостями, `non-free` и `non-free-firmware` — несвободное ПО и прошивки). Зеркало — копия официального репозитория, расположенная ближе для ускорения загрузки.
+`trixie` — название версии Debian 13. Зеркало — копия репозитория, которая находится ближе и быстрее скачивается.
 
 ![sources.list](images/01-sources-list.png)
 
 ```bash
-sudo apt update
+apt update
 ```
 
-![apt update с официальным репозиторием и зеркалом](images/02-apt-update.png)
+Списки пакетов загружены и с официального сервера, и с зеркала Яндекса.
 
-### 1.2. Установка пакетов
+![apt update](images/02-apt-update.png)
+
+### Установка пакетов
 
 ```bash
-sudo apt install -y vim curl net-tools apache2
+apt install -y vim curl net-tools apache2
 ```
 
 ![Установка пакетов](images/03-apt-install.png)
 
-### 1.3. Скрипт установки пакетов
-
-Скрипт `install_packages.sh`:
+### Скрипт установки пакетов
 
 ```bash
 #!/bin/bash
@@ -78,176 +66,139 @@ for pkg in $PACKAGES; do
 done
 ```
 
-Скрипт проверяет права root, обновляет списки пакетов и для каждого пакета проверяет через `dpkg -s`, установлен ли он; отсутствующие устанавливает. Для демонстрации предварительно удалён пакет `vim`:
+Скрипт по очереди проверяет каждый пакет (`dpkg -s`) и устанавливает, если его нет. Для проверки сначала был удалён vim — скрипт его установил, а остальные пропустил.
 
-```bash
-sudo apt remove -y vim
-chmod +x install_packages.sh
-sudo ./install_packages.sh
-```
+![Скрипт установки](images/04-install-script.png)
 
-![Скрипт установки и его работа](images/04-install-script.png)
+Apache работает — страница открывается в браузере на Mac по адресу `http://127.0.0.1:8080`:
 
-Проверка Apache: на ВМ `curl -I http://localhost` возвращает `HTTP/1.1 200 OK`; на Mac в браузере по адресу `http://127.0.0.1:8080` (проброс порта 8080 → 80) открывается стандартная страница Apache.
-
-![Страница Apache в браузере Mac](images/05-apache-browser.png)
+![Страница Apache](images/05-apache-browser.png)
 
 ---
 
-## 2. Системные сервисы
-
-### 2.1. Автозапуск и управление службами
+## Задание 2. Работа с системными сервисами
 
 ```bash
-sudo systemctl enable apache2 ssh       # включить автозапуск при загрузке
-systemctl is-enabled apache2 ssh        # enabled, enabled
-
-sudo systemctl status apache2           # состояние и последние строки журнала
-sudo systemctl stop apache2;    systemctl is-active apache2    # inactive
-sudo systemctl start apache2;   systemctl is-active apache2    # active
-sudo systemctl restart apache2
-sudo systemctl disable apache2; systemctl is-enabled apache2   # disabled
-sudo systemctl enable --now apache2                            # включить и сразу запустить
+systemctl enable apache2 ssh       # включить автозапуск
+systemctl is-enabled apache2 ssh   # проверить автозапуск
+systemctl stop apache2             # остановить
+systemctl start apache2            # запустить
+systemctl disable apache2          # выключить автозапуск
+systemctl enable --now apache2     # включить автозапуск и запустить
+systemctl status apache2           # статус
 ```
 
-`start`/`stop` действуют сейчас, `enable`/`disable` — на автозапуск при следующих загрузках; `enable --now` делает и то, и другое.
+![systemctl](images/06-systemctl.png)
 
-![Управление службами через systemctl](images/06-systemctl.png)
-
-### 2.2. Ежедневный перезапуск Apache через cron
+### Перезапуск Apache через cron
 
 ```bash
-sudo crontab -e
+crontab -e
 ```
 
-Добавлена строка — перезапуск каждый день в 04:00:
+Добавлена строка — перезапуск Apache каждый день в 4:00:
 
 ```
 0 4 * * * /usr/bin/systemctl restart apache2
 ```
 
-Поля: минута, час, день месяца, месяц, день недели. В cron используется полный путь к команде, так как переменная `PATH` в cron урезана.
+Поля: минута, час, день месяца, месяц, день недели.
 
-```bash
-sudo crontab -l
-```
+Для проверки временно было поставлено `*/2 * * * *` (каждые 2 минуты): по статусу видно, что Apache перезапустился в 00:10:01. Потом расписание вернули на ежедневное.
 
-Для проверки расписание временно заменено на `*/2 * * * *` (каждые 2 минуты): время в строке `Active: active (running) since` вывода `systemctl status apache2` обновилось, после чего возвращено ежедневное расписание.
-
-![Задание cron и проверка перезапуска](images/07-cron.png)
+![cron](images/07-cron.png)
 
 ---
 
-## 3. Конфигурация сети
+## Задание 3. Конфигурация сети
 
-### 3.1. Исходное состояние
+### До настройки
 
-До настройки адрес выдавался по DHCP:
+Адрес выдавался автоматически по DHCP (в выводе есть слово `dynamic`):
 
 ```bash
-ip a
-ip route
 cat /etc/network/interfaces
+ip a show enp0s8
+ip route
 ```
 
-В файле интерфейс описан как `allow-hotplug enp0s8` / `iface enp0s8 inet dhcp`, у адреса `10.0.2.15/24` стоит пометка `dynamic` и конечный срок аренды (`valid_lft 85149sec`), маршрут по умолчанию получен по DHCP (`proto dhcp`).
+![Сеть до настройки](images/08-network-before.png)
 
-![Сеть до настройки (DHCP)](images/08-network-before.png)
+### Статический IP
 
-### 3.2. Статический IP-адрес
-
-Настройка выполнялась в окне ВМ (не по SSH), так как при перезапуске сети SSH-соединение обрывается.
-
-```bash
-sudo cp /etc/network/interfaces /etc/network/interfaces.bak
-sudo nano /etc/network/interfaces
-```
+В файле `/etc/network/interfaces` задан статический адрес:
 
 ```
-auto lo
-iface lo inet loopback
-
 auto enp0s8
 iface enp0s8 inet static
     address 10.0.2.15/24
     gateway 10.0.2.2
 ```
 
-- `auto` — поднимать интерфейс при загрузке;
-- `inet static` — статический адрес вместо `inet dhcp`;
-- `address` — IP-адрес с маской (`/24` = 255.255.255.0);
-- `gateway` — шлюз по умолчанию (маршрутизатор NAT VirtualBox).
+`address` — IP-адрес, `gateway` — шлюз. После этого система перезагружена.
 
-DNS-серверы заданы в `/etc/resolv.conf` (`nameserver 8.8.8.8`, см. лабораторную работу № 1).
+![interfaces](images/09-interfaces.png)
 
-```bash
-sudo systemctl restart networking
-```
-
-![Файл /etc/network/interfaces](images/09-interfaces.png)
-
-### 3.3. Проверка
+### Проверка
 
 ```bash
-ip a show enp0s8      # inet 10.0.2.15/24 без пометки dynamic — адрес статический
-ifconfig              # то же через утилиту из net-tools
-ip route              # default via 10.0.2.2 dev enp0s8
-getent hosts debian.org                # DNS работает
-curl -sI http://deb.debian.org | head -1   # доступ в интернет (ping наружу NAT VirtualBox на macOS не пропускает)
+ip a show enp0s8
+ifconfig enp0s8
+ip route
+getent hosts debian.org
+curl -sI http://deb.debian.org | head -1
 ```
 
-После перезагрузки у адреса `10.0.2.15/24` нет пометки `dynamic`, срок действия — `forever`; маршрут по умолчанию `default via 10.0.2.2 dev enp0s8 onlink` задан статически (без `proto dhcp`). `ifconfig` показывает тот же адрес, маску `255.255.255.0` и счётчики пакетов без ошибок. Имена разрешаются (`getent hosts`), веб-сервер репозитория отвечает `HTTP/1.1 200 OK` — интернет работает.
+Слова `dynamic` больше нет — адрес статический. Интернет работает: сайт отвечает `200 OK`. Вместо `ping` используется `curl`, потому что VirtualBox на Mac не пропускает ping наружу.
 
-![Проверка сетевой конфигурации](images/10-network-check.png)
+![Проверка сети](images/10-network-check.png)
 
 ---
 
-## 4. Диагностика сетевых проблем
+## Задание 4. Диагностика сетевых проблем
 
-```bash
-sudo apt install -y traceroute
-```
+| Команда      | Что делает                                            | Пример               |
+| ------------ | ----------------------------------------------------- | -------------------- |
+| `traceroute` | показывает путь пакета до сервера                     | `traceroute 8.8.8.8` |
+| `netstat`    | показывает открытые порты и маршруты (старая команда) | `netstat -tulpn`     |
+| `ss`         | то же, что netstat, но новее и быстрее                | `ss -tulpn`          |
 
-| Команда      | Назначение                                                                                                                        | Примеры                                                          |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `traceroute` | показывает маршрутизаторы на пути до узла и задержку на каждом шаге; основан на увеличении TTL пакетов; `* * *` — узел не ответил | `traceroute -n 8.8.8.8`, `sudo traceroute -T -p 443 ya.ru` (TCP) |
-| `netstat`    | устаревшая утилита (net-tools): соединения, слушающие порты, таблица маршрутов                                                    | `sudo netstat -tulpn`, `netstat -rn`                             |
-| `ss`         | современная замена netstat: получает данные напрямую из ядра, работает быстрее, поддерживает фильтры                              | `sudo ss -tulpn`, `ss -tn state established`, `ss -s`            |
-
-Флаги `-tulpn`: `t` — TCP, `u` — UDP, `l` — только слушающие сокеты, `p` — процесс, `n` — числовые адреса и порты.
+### traceroute
 
 ```bash
 traceroute -n 8.8.8.8
-sudo traceroute -T -p 443 ya.ru
+traceroute -T -p 443 ya.ru
 ```
 
-Первым узлом в обоих случаях виден шлюз NAT VirtualBox `10.0.2.2`, дальше — `* * *`: NAT VirtualBox на macOS не пропускает наружу UDP/ICMP-пакеты трассировки и ответы маршрутизаторов. TCP-трассировка до `ya.ru` сразу показывает конечный узел на первом шаге: VirtualBox не передаёт пакеты с исходным TTL, а сам устанавливает TCP-соединение от имени хоста, поэтому промежуточные маршрутизаторы скрыты.
+Первый узел — шлюз VirtualBox `10.0.2.2`, дальше `* * *`: VirtualBox не показывает промежуточные узлы.
 
 ![traceroute](images/11-traceroute.png)
 
-```bash
-sudo netstat -tulpn
-netstat -rn
-```
-
-`netstat -tulpn` показывает, что порт 22 слушает `sshd` (IPv4 и IPv6), порт 80 — `apache2`. `netstat -rn` выводит таблицу маршрутов: маршрут по умолчанию `0.0.0.0` через шлюз `10.0.2.2` (флаги `UG` — активен, через шлюз) и локальная сеть `10.0.2.0/24`.
-
-![netstat: порты и маршруты](images/12-netstat.png)
+### netstat
 
 ```bash
-sudo ss -tulpn
-ss -tn state established
-ss -s
+netstat -tulpn   # открытые порты
+netstat -rn      # таблица маршрутов
 ```
 
-`ss -tulpn` показывает те же слушающие порты с PID процессов: `sshd` на 22, три процесса `apache2` на 80, а также UDP-сокет службы синхронизации времени `systemd-timesyncd`. Среди установленных соединений — SSH-сессия с Mac (`10.0.2.15:22` ↔ `10.0.2.2:64406`). `ss -s` выводит сводку по сокетам.
+Порт 22 слушает `sshd` (SSH), порт 80 — `apache2`. Маршрут по умолчанию идёт через шлюз `10.0.2.2`.
 
-![ss: порты и соединения](images/13-ss.png)
+![netstat](images/12-netstat.png)
 
-Пример последовательности диагностики «сайт не открывается»: `systemctl status apache2` (служба запущена?) → `ss -tlnp | grep :80` (порт слушается?) → `curl -I localhost` (сервер отвечает локально?) → `ping` / `traceroute` (есть ли связь с клиентом).
+### ss
+
+```bash
+ss -tulpn                  # открытые порты
+ss -tn state established   # активные соединения
+ss -s                      # общая статистика
+```
+
+Видны те же порты 22 и 80 и текущее SSH-подключение с Mac.
+
+![ss](images/13-ss.png)
 
 ---
 
 ## Вывод
 
-Настроен `/etc/apt/sources.list` с официальными репозиториями Debian и зеркалом, установлены пакеты vim, curl, net-tools, apache2, в том числе с помощью bash-скрипта. С помощью `systemctl` настроен автозапуск Apache и SSH, изучены команды запуска, остановки и проверки состояния служб; через cron настроен ежедневный перезапуск Apache. Для интерфейса `enp0s8` настроен статический IP-адрес `10.0.2.15/24` со шлюзом `10.0.2.2` через `/etc/network/interfaces`, конфигурация проверена командами `ip`, `ifconfig`, `ping`. Изучены утилиты диагностики сети `traceroute`, `netstat` и `ss`.
+Настроены репозитории, установлены пакеты, в том числе скриптом. Настроен автозапуск Apache и SSH и ежедневный перезапуск Apache через cron. Настроен статический IP-адрес. Изучены команды `traceroute`, `netstat` и `ss`.
