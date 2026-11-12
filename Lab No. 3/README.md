@@ -150,6 +150,8 @@ ip route
 cat /etc/network/interfaces
 ```
 
+В файле интерфейс описан как `allow-hotplug enp0s8` / `iface enp0s8 inet dhcp`, у адреса `10.0.2.15/24` стоит пометка `dynamic` и конечный срок аренды (`valid_lft 85149sec`), маршрут по умолчанию получен по DHCP (`proto dhcp`).
+
 ![Сеть до настройки (DHCP)](images/08-network-before.png)
 
 ### 3.2. Статический IP-адрес
@@ -190,9 +192,11 @@ sudo systemctl restart networking
 ip a show enp0s8      # inet 10.0.2.15/24 без пометки dynamic — адрес статический
 ifconfig              # то же через утилиту из net-tools
 ip route              # default via 10.0.2.2 dev enp0s8
-ping -c 3 10.0.2.2    # шлюз
-ping -c 3 debian.org  # интернет и DNS
+getent hosts debian.org                # DNS работает
+curl -sI http://deb.debian.org | head -1   # доступ в интернет (ping наружу NAT VirtualBox на macOS не пропускает)
 ```
+
+После перезагрузки у адреса `10.0.2.15/24` нет пометки `dynamic`, срок действия — `forever`; маршрут по умолчанию `default via 10.0.2.2 dev enp0s8 onlink` задан статически (без `proto dhcp`). `ifconfig` показывает тот же адрес, маску `255.255.255.0` и счётчики пакетов без ошибок. Имена разрешаются (`getent hosts`), веб-сервер репозитория отвечает `HTTP/1.1 200 OK` — интернет работает.
 
 ![Проверка сетевой конфигурации](images/10-network-check.png)
 
@@ -217,7 +221,7 @@ traceroute -n 8.8.8.8
 sudo traceroute -T -p 443 ya.ru
 ```
 
-В режиме NAT VirtualBox часть узлов отвечает `* * *` — промежуточные маршрутизаторы не отвечают на служебные пакеты; TCP-вариант проходит лучше.
+Первым узлом в обоих случаях виден шлюз NAT VirtualBox `10.0.2.2`, дальше — `* * *`: NAT VirtualBox на macOS не пропускает наружу UDP/ICMP-пакеты трассировки и ответы маршрутизаторов. TCP-трассировка до `ya.ru` сразу показывает конечный узел на первом шаге: VirtualBox не передаёт пакеты с исходным TTL, а сам устанавливает TCP-соединение от имени хоста, поэтому промежуточные маршрутизаторы скрыты.
 
 ![traceroute](images/11-traceroute.png)
 
@@ -225,6 +229,8 @@ sudo traceroute -T -p 443 ya.ru
 sudo netstat -tulpn
 netstat -rn
 ```
+
+`netstat -tulpn` показывает, что порт 22 слушает `sshd` (IPv4 и IPv6), порт 80 — `apache2`. `netstat -rn` выводит таблицу маршрутов: маршрут по умолчанию `0.0.0.0` через шлюз `10.0.2.2` (флаги `UG` — активен, через шлюз) и локальная сеть `10.0.2.0/24`.
 
 ![netstat: порты и маршруты](images/12-netstat.png)
 
@@ -234,7 +240,7 @@ ss -tn state established
 ss -s
 ```
 
-Видно, что порт 22 слушает `sshd`, порт 80 — `apache2`; среди активных соединений — SSH-сессия с Mac.
+`ss -tulpn` показывает те же слушающие порты с PID процессов: `sshd` на 22, три процесса `apache2` на 80, а также UDP-сокет службы синхронизации времени `systemd-timesyncd`. Среди установленных соединений — SSH-сессия с Mac (`10.0.2.15:22` ↔ `10.0.2.2:64406`). `ss -s` выводит сводку по сокетам.
 
 ![ss: порты и соединения](images/13-ss.png)
 
