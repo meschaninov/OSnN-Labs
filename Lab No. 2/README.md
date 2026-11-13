@@ -144,10 +144,6 @@ sidorova developers
 Скрипт `create_users.sh`:
 
 ```bash
-#!/bin/bash
-# Создание пользователей из файла users.txt
-# Формат строки: имя группа
-
 while read -r name group; do
     if ! getent group "$group" > /dev/null; then
         groupadd "$group"
