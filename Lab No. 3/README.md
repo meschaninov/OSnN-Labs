@@ -48,7 +48,6 @@ apt install -y vim curl net-tools apache2
 ### Скрипт установки пакетов
 
 ```bash
-# Использование: sudo ./install_packages.sh
 PACKAGES="vim curl net-tools apache2"
 
 if [ "$EUID" -ne 0 ]; then echo "Запустите через sudo"; exit 1; fi
