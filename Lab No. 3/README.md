@@ -25,7 +25,7 @@ deb http://security.debian.org/debian-security trixie-security main contrib non-
 deb http://mirror.yandex.ru/debian trixie main contrib non-free non-free-firmware
 ```
 
-`trixie` — название версии Debian 13. Зеркало — копия репозитория, которая находится ближе и быстрее скачивается.
+`trixie` - название версии Debian 13. Зеркало - копия репозитория, которая находится ближе и быстрее скачивается.
 
 ![sources.list](images/01-sources-list.png)
 
@@ -62,11 +62,11 @@ for pkg in $PACKAGES; do
 done
 ```
 
-Скрипт по очереди проверяет каждый пакет (`dpkg -s`) и устанавливает, если его нет. Для проверки сначала был удалён vim — скрипт его установил, а остальные пропустил.
+Скрипт по очереди проверяет каждый пакет (`dpkg -s`) и устанавливает, если его нет. Для проверки сначала был удалён vim - скрипт его установил, а остальные пропустил.
 
 ![Скрипт установки](images/04-install-script.png)
 
-Apache работает — страница открывается в браузере на Mac по адресу `http://127.0.0.1:8080`:
+Apache работает - страница открывается в браузере на Mac по адресу `http://127.0.0.1:8080`:
 
 ![Страница Apache](images/05-apache-browser.png)
 
@@ -92,7 +92,7 @@ systemctl status apache2           # статус
 crontab -e
 ```
 
-Добавлена строка — перезапуск Apache каждый день в 4:00:
+Добавлена строка - перезапуск Apache каждый день в 4:00:
 
 ```
 0 4 * * * /usr/bin/systemctl restart apache2
@@ -131,7 +131,7 @@ iface enp0s8 inet static
     gateway 10.0.2.2
 ```
 
-`address` — IP-адрес, `gateway` — шлюз. После этого система перезагружена.
+`address` - IP-адрес, `gateway` - шлюз. После этого система перезагружена.
 
 ![interfaces](images/09-interfaces.png)
 
@@ -145,7 +145,7 @@ getent hosts debian.org
 curl -sI http://deb.debian.org | head -1
 ```
 
-Слова `dynamic` больше нет — адрес статический. Интернет работает: сайт отвечает `200 OK`. Вместо `ping` используется `curl`, потому что VirtualBox на Mac не пропускает ping наружу.
+Слова `dynamic` больше нет - адрес статический. Интернет работает: сайт отвечает `200 OK`. Вместо `ping` используется `curl`, потому что VirtualBox на Mac не пропускает ping наружу.
 
 ![Проверка сети](images/10-network-check.png)
 
@@ -166,7 +166,7 @@ traceroute -n 8.8.8.8
 traceroute -T -p 443 ya.ru
 ```
 
-Первый узел — шлюз VirtualBox `10.0.2.2`, дальше `* * *`: VirtualBox не показывает промежуточные узлы.
+Первый узел - шлюз VirtualBox `10.0.2.2`, дальше `* * *`: VirtualBox не показывает промежуточные узлы.
 
 ![traceroute](images/11-traceroute.png)
 
@@ -177,7 +177,7 @@ netstat -tulpn   # открытые порты
 netstat -rn      # таблица маршрутов
 ```
 
-Порт 22 слушает `sshd` (SSH), порт 80 — `apache2`. Маршрут по умолчанию идёт через шлюз `10.0.2.2`.
+Порт 22 слушает `sshd` (SSH), порт 80 - `apache2`. Маршрут по умолчанию идёт через шлюз `10.0.2.2`.
 
 ![netstat](images/12-netstat.png)
 
