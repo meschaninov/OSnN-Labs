@@ -18,12 +18,10 @@
 В файл `/etc/apt/sources.list` добавлены официальные репозитории Debian и зеркало Яндекса:
 
 ```
-# Официальные репозитории Debian
 deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware
 deb http://deb.debian.org/debian trixie-updates main contrib non-free non-free-firmware
 deb http://security.debian.org/debian-security trixie-security main contrib non-free non-free-firmware
 
-# Зеркало (Россия)
 deb http://mirror.yandex.ru/debian trixie main contrib non-free non-free-firmware
 ```
 
@@ -50,7 +48,6 @@ apt install -y vim curl net-tools apache2
 ### Скрипт установки пакетов
 
 ```bash
-#!/bin/bash
 # Использование: sudo ./install_packages.sh
 PACKAGES="vim curl net-tools apache2"
 
